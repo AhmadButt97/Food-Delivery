@@ -42,3 +42,28 @@ After resolving the above, `docker compose up -d --build` successfully starts al
 - Backend → MongoDB (`{"success":true,"data":[]}` from `/api/food/list`)
 - Admin → Backend → MongoDB (adding a food item via Admin panel)
 - Frontend → Backend → MongoDB (new item visible on homepage)
+
+
+
+
+---
+
+# Troubleshooting Log — Task 5: Multi-Stage, Rootless Docker Images & Registry Push
+
+## Summary
+This task went smoothly overall, largely due to networking and permission issues already resolved during Task 3. Key implementation notes below.
+
+## 1. Rootless Container Permissions
+**Consideration:** Switching containers to run as a non-root user (`appuser`) required explicitly setting file ownership before switching users.
+**Solution:** Added `RUN chown -R appuser:appgroup /app` before the `USER appuser` instruction in each Dockerfile, ensuring the non-root user has write access to necessary directories (e.g. `uploads/` in the backend).
+
+## 2. Multi-Stage Build Image Size Reduction
+**Implementation:** Split each Dockerfile into a `builder` stage (installs dependencies, builds the app) and a slim final stage that only copies the necessary build output (`dist/` for frontend/admin, `node_modules` + source for backend).
+**Result:** Meaningfully smaller final images with no dev dependencies or build tools included, reducing attack surface.
+
+## 3. Registry Authentication
+**Implementation:** Authenticated separately with three registries — Docker Hub (`docker login`), GitHub Container Registry (`docker login ghcr.io` with a Personal Access Token), and AWS ECR (`aws ecr get-login-password | docker login`).
+**Note:** Each registry requires its own login/auth flow and image tag format (e.g. `ghcr.io/<username>/<image>`, `<account-id>.dkr.ecr.<region>.amazonaws.com/<image>`), so images had to be tagged three separate times per service before pushing.
+
+## Outcome
+Successfully built hardened, multi-stage, rootless images for backend, frontend, and admin services, and pushed all three to Docker Hub, GHCR, and AWS ECR. Verified full-stack functionality remained intact after switching to the new images.

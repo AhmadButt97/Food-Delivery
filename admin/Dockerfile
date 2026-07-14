@@ -1,20 +1,29 @@
-# Use official Node.js LTS image
-FROM node:20-alpine
+# ---- Stage 1: Build the React app ----
+FROM node:20-alpine AS builder
 
-# Set working directory inside container
 WORKDIR /app
 
-# Copy package files first (better layer caching)
 COPY package*.json ./
-
-# Install dependencies
 RUN npm install
 
-# Copy the rest of the admin source code
 COPY . .
+RUN npm run build
 
-# Expose Vite's dev server port
+# ---- Stage 2: Serve the built app ----
+FROM node:20-alpine
+
+WORKDIR /app
+
+RUN npm install -g serve
+
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+COPY --from=builder /app/dist /app/dist
+
+RUN chown -R appuser:appgroup /app
+
+USER appuser
+
 EXPOSE 5173
 
-# Run Vite dev server, bound to all interfaces so it's reachable from outside the container
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+CMD ["serve", "-s", "dist", "-l", "5173"]

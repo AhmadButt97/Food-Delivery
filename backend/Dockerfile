@@ -1,20 +1,30 @@
-# Use official Node.js LTS image
-FROM node:20-alpine
+# ---- Stage 1: Build dependencies ----
+FROM node:20-alpine AS builder
 
-# Set working directory inside container
 WORKDIR /app
 
-# Copy package files first (better layer caching)
 COPY package*.json ./
+RUN npm install --omit=dev
 
-# Install dependencies
-RUN npm install
-
-# Copy the rest of the backend source code
 COPY . .
 
-# Expose backend port
+# ---- Stage 2: Production image ----
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Create a non-root group and user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Copy only what's needed from the builder stage
+COPY --from=builder /app /app
+
+# Ensure appuser owns the app files (needed for uploads/ writes)
+RUN chown -R appuser:appgroup /app
+
+# Switch to non-root user
+USER appuser
+
 EXPOSE 4000
 
-# Start the server
 CMD ["node", "server.js"]
