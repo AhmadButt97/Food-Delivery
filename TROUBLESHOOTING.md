@@ -42,3 +42,63 @@ After resolving the above, `docker compose up -d --build` successfully starts al
 - Backend → MongoDB (`{"success":true,"data":[]}` from `/api/food/list`)
 - Admin → Backend → MongoDB (adding a food item via Admin panel)
 - Frontend → Backend → MongoDB (new item visible on homepage)
+
+
+
+
+---
+
+# Troubleshooting Log — Task 5: Multi-Stage, Rootless Docker Images & Registry Push
+
+## Summary
+This task went smoothly overall, largely due to networking and permission issues already resolved during Task 3. Key implementation notes below.
+
+## 1. Rootless Container Permissions
+**Consideration:** Switching containers to run as a non-root user (`appuser`) required explicitly setting file ownership before switching users.
+**Solution:** Added `RUN chown -R appuser:appgroup /app` before the `USER appuser` instruction in each Dockerfile, ensuring the non-root user has write access to necessary directories (e.g. `uploads/` in the backend).
+
+## 2. Multi-Stage Build Image Size Reduction
+**Implementation:** Split each Dockerfile into a `builder` stage (installs dependencies, builds the app) and a slim final stage that only copies the necessary build output (`dist/` for frontend/admin, `node_modules` + source for backend).
+**Result:** Meaningfully smaller final images with no dev dependencies or build tools included, reducing attack surface.
+
+## 3. Registry Authentication
+**Implementation:** Authenticated separately with three registries — Docker Hub (`docker login`), GitHub Container Registry (`docker login ghcr.io` with a Personal Access Token), and AWS ECR (`aws ecr get-login-password | docker login`).
+**Note:** Each registry requires its own login/auth flow and image tag format (e.g. `ghcr.io/<username>/<image>`, `<account-id>.dkr.ecr.<region>.amazonaws.com/<image>`), so images had to be tagged three separate times per service before pushing.
+
+## Outcome
+Successfully built hardened, multi-stage, rootless images for backend, frontend, and admin services, and pushed all three to Docker Hub, GHCR, and AWS ECR. Verified full-stack functionality remained intact after switching to the new images.
+
+
+
+
+---
+
+# Troubleshooting Log — Task 7: Jenkins CI/CD Pipeline with GitHub Webhook
+
+## 1. Java Package Name Mismatch on Amazon Linux
+**Issue:** Installing Java for Jenkins failed with `No match for argument: java-17-openjdk` on Amazon Linux.
+**Cause:** Amazon Linux uses its own OpenJDK build under a different package name than generic RHEL/CentOS repos.
+**Solution:** Installed `java-17-amazon-corretto` instead, Amazon's own OpenJDK distribution.
+
+## 2. "Pipeline script from SCM" Missing from Jenkins UI
+**Issue:** The Pipeline job configuration only showed "Pipeline script" as an option, with no way to pull the pipeline definition from GitHub.
+**Cause:** Required Pipeline plugins (workflow-scm-step, workflow-multibranch, workflow-job) were installed but not yet fully activated.
+**Solution:** Restarted Jenkins after plugin installation and did a hard browser refresh, which revealed the missing option.
+
+## 3. IPv6 Connectivity Causing Docker Hub Push Failures
+**Issue:** Docker image pushes to Docker Hub intermittently failed mid-transfer with `connect: connection refused` errors.
+**Cause:** The host had no working IPv6 connectivity, but DNS resolution for Docker Hub returned IPv6 addresses first. Every request attempted several failing IPv6 connections before falling back to IPv4, and this pattern eventually caused a dropped connection during a long multi-layer push.
+**Solution:** Disabled IPv6 in the Docker daemon configuration (`/etc/docker/daemon.json` with `"ipv6": false`) and restarted Docker, forcing all connections to use IPv4 directly.
+
+## 4. Local Git Repository Corruption
+**Issue:** Local Git commands began failing with `fatal: bad object HEAD` and multiple `object file ... is empty` errors.
+**Cause:** Git object files in `.git/objects/` became corrupted, likely due to an interrupted disk write or VM issue.
+**Solution:** Since all work had been regularly pushed to GitHub, the corrupted local folder was safely renamed and a fresh clone was pulled from the remote repository, with zero data loss.
+
+## 5. GitHub Webhook Unreachable via Private IP
+**Issue:** The GitHub webhook consistently failed delivery when configured with the Jenkins server's local network IP address (e.g. `192.168.x.x`).
+**Cause:** Private IP addresses are not routable from the public internet, so GitHub's servers had no way to reach the Jenkins instance.
+**Solution:** Used ngrok to create a secure public tunnel to the local Jenkins instance, and updated the webhook's Payload URL to the ngrok-provided public HTTPS URL, which resolved delivery immediately.
+
+## Outcome
+Successfully configured a working Jenkins CI/CD pipeline that automatically builds and pushes Docker images for backend, frontend, and admin services to Docker Hub, GitHub Container Registry, and AWS ECR on every push to the `feature/ahmadbutt` branch, triggered via GitHub webhook.
