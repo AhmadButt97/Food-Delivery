@@ -91,15 +91,27 @@ pipeline {
                 script {
                     ['backend', 'frontend', 'admin'].each { svc ->
                         sh "docker rmi ${DOCKERHUB_USERNAME}/food-delivery-${svc}:${IMAGE_TAG} || true"
-                        sh "docker rmi ${DOCKERHUB_USERNAME}/food-delivery-${svc}:latest || true"
                         sh "docker rmi ghcr.io/${GHCR_USERNAME}/food-delivery-${svc}:${IMAGE_TAG} || true"
-                        sh "docker rmi ghcr.io/${GHCR_USERNAME}/food-delivery-${svc}:latest || true"
                         sh "docker rmi ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/food-delivery-${svc}:${IMAGE_TAG} || true"
-                        sh "docker rmi ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/food-delivery-${svc}:latest || true"
                         sh "docker rmi food-delivery-${svc}:${IMAGE_TAG} || true"
-                        sh "docker rmi food-delivery-${svc}:latest || true"
+                        // keep :latest locally since Compose deploy stage below needs it
                     }
                 }
+            }
+        }
+
+        stage('Deploy with Docker Compose (from Docker Hub)') {
+            steps {
+                sh 'docker compose -f docker-compose.hub.yml pull'
+                sh 'docker compose -f docker-compose.hub.yml up -d'
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                sh 'sleep 5'
+                sh 'docker compose -f docker-compose.hub.yml ps'
+                sh 'curl -f http://localhost:4000/api/food/list || echo "Backend not responding yet"'
             }
         }
     }
