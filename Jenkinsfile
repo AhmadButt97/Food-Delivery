@@ -91,10 +91,13 @@ pipeline {
                 script {
                     ['backend', 'frontend', 'admin'].each { svc ->
                         sh "docker rmi ${DOCKERHUB_USERNAME}/food-delivery-${svc}:${IMAGE_TAG} || true"
-                        sh "docker rmi ghcr.io/${GHCR_USERNAME}/food-delivery-${svc}:${IMAGE_TAG} || true"
-                        sh "docker rmi ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/food-delivery-${svc}:${IMAGE_TAG} || true"
-                        sh "docker rmi food-delivery-${svc}:${IMAGE_TAG} || true"
-                        // keep :latest locally since Compose deploy stage below needs it
+                	sh "docker rmi ${DOCKERHUB_USERNAME}/food-delivery-${svc}:latest || true"
+                	sh "docker rmi ghcr.io/${GHCR_USERNAME}/food-delivery-${svc}:${IMAGE_TAG} || true"
+                	sh "docker rmi ghcr.io/${GHCR_USERNAME}/food-delivery-${svc}:latest || true"
+                	sh "docker rmi ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/food-delivery-${svc}:${IMAGE_TAG} || true"
+                	sh "docker rmi ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/food-delivery-${svc}:latest || true"
+                	sh "docker rmi food-delivery-${svc}:${IMAGE_TAG} || true"
+                	sh "docker rmi food-delivery-${svc}:latest || true"
                     }
                 }
             }
@@ -124,4 +127,6 @@ pipeline {
             echo 'Pipeline failed. Check logs above.'
         }
     }
-} 
+}
+
+ 

@@ -102,3 +102,20 @@ Successfully built hardened, multi-stage, rootless images for backend, frontend,
 
 ## Outcome
 Successfully configured a working Jenkins CI/CD pipeline that automatically builds and pushes Docker images for backend, frontend, and admin services to Docker Hub, GitHub Container Registry, and AWS ECR on every push to the `feature/ahmadbutt` branch, triggered via GitHub webhook.
+
+
+# Task NO 8  
+
+Troubleshooting & Documentation
+
+During the implementation of the CI/CD pipeline, several issues were encountered related to Docker, Jenkins, Docker Hub, Docker Compose, and GitHub webhooks. Docker Hub authentication problems were resolved by configuring credentials securely in Jenkins. Network and DNS issues causing Docker image push failures were fixed by updating the DNS configuration.
+
+While deploying the application, Docker Compose was unable to pull images because of incorrect image names and tags. The issue was resolved by verifying the Docker Hub repositories and updating the image references in the docker-compose.yml file.
+
+The backend service initially failed to connect to MongoDB due to container hostname resolution problems. This was fixed by connecting all services to the same Docker network and updating the MongoDB connection string.
+
+GitHub webhook integration stopped working when the ngrok session expired. The webhook was restored by reconfiguring ngrok and updating the webhook URL in the GitHub repository settings.
+
+To avoid storage issues on the Jenkins server, a cleanup stage was added to remove local Docker images after they were pushed to Docker Hub. Testing confirmed that all containers were successfully deployed using Docker Compose and that communication between the frontend, backend, admin panel, and MongoDB was working correctly.
+
+The project followed best practices, including secure credential management, automated CI/CD workflows, Docker image optimization, Git branching strategies, and comprehensive documentation of issues and solutions.
