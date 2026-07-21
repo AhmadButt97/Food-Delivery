@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - feature/ahmadbutt
+  workflow_dispatch:
 
 permissions:
   contents: read
