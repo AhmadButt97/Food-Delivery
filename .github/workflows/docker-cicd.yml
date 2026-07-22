@@ -6,9 +6,8 @@ on:
       - feature/ahmadbutt
 
 jobs:
-  build-push-deploy:
+  build-and-push:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -49,35 +48,17 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/food-delivery-admin:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/food-delivery-admin:run-${{ github.run_number }}
 
-      - name: Remove local Docker images to save disk space
-        run: |
-          docker rmi ${{ secrets.DOCKERHUB_USERNAME }}/food-delivery-backend:latest || true
-          docker rmi ${{ secrets.DOCKERHUB_USERNAME }}/food-delivery-backend:run-${{ github.run_number }} || true
-          docker rmi ${{ secrets.DOCKERHUB_USERNAME }}/food-delivery-frontend:latest || true
-          docker rmi ${{ secrets.DOCKERHUB_USERNAME }}/food-delivery-frontend:run-${{ github.run_number }} || true
-          docker rmi ${{ secrets.DOCKERHUB_USERNAME }}/food-delivery-admin:latest || true
-          docker rmi ${{ secrets.DOCKERHUB_USERNAME }}/food-delivery-admin:run-${{ github.run_number }} || true
+  deploy:
+    needs: build-and-push
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Pull and run containers manually (docker run verification)
-        run: |
-          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/food-delivery-backend:latest
-          docker run -d --name verify-backend -p 4000:4000 \
-            -e MONGO_URL=mongodb://mongodb:27017/food-delivery \
-            -e JWT_SECRET=testsecret \
-            -e SALT=10 \
-            ${{ secrets.DOCKERHUB_USERNAME }}/food-delivery-backend:latest
-          sleep 5
-          docker ps
-          docker logs verify-backend
-          docker stop verify-backend
-          docker rm verify-backend
-
-      - name: Deploy full stack with Docker Compose
+      - name: Pull latest images and deploy
         run: |
           docker compose -f docker-compose.hub.yml pull
           docker compose -f docker-compose.hub.yml up -d
-          sleep 10
-          docker compose -f docker-compose.hub.yml ps
 
       - name: Verify backend responds
         run: |
@@ -90,8 +71,4 @@ jobs:
             sleep 3
           done
           echo "Backend did not respond in time"
-          exit 1
-
-      - name: Tear down
-        if: always()
-        run: docker compose -f docker-compose.hub.yml down 
+          exit 1 
