@@ -52,11 +52,9 @@ jobs:
     needs: build-and-push
     runs-on: self-hosted
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       - name: Pull latest images and deploy
         run: |
+          cd /root/Food-Delivery
           docker compose -f docker-compose.hub.yml pull
           docker compose -f docker-compose.hub.yml up -d
 
