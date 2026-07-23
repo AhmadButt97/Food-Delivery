@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: ahmadbutt97/food-delivery-backend:latest
+          ports:
+            - containerPort: 4000
+          env:
+            - name: MONGO_URL
+              value: "mongodb://mongodb:27017/food-delivery"
+            - name: JWT_SECRET
+              value: "mysecretkey123"
+            - name: SALT
+              value: "10"

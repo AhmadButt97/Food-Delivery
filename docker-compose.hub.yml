@@ -9,7 +9,7 @@ services:
     restart: unless-stopped
 
   backend:
-    build: ./backend
+    image: ahmadbutt97/food-delivery-backend:latest
     container_name: tomato-backend
     ports:
       - "4000:4000"
@@ -20,7 +20,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    build: ./frontend
+    image: ahmadbutt97/food-delivery-frontend:latest
     container_name: tomato-frontend
     ports:
       - "5173:5173"
@@ -29,7 +29,7 @@ services:
     restart: unless-stopped
 
   admin:
-    build: ./admin
+    image: ahmadbutt97/food-delivery-admin:latest
     container_name: tomato-admin
     ports:
       - "5174:5173"
