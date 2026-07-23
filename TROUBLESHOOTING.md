@@ -119,3 +119,218 @@ GitHub webhook integration stopped working when the ngrok session expired. The w
 To avoid storage issues on the Jenkins server, a cleanup stage was added to remove local Docker images after they were pushed to Docker Hub. Testing confirmed that all containers were successfully deployed using Docker Compose and that communication between the frontend, backend, admin panel, and MongoDB was working correctly.
 
 The project followed best practices, including secure credential management, automated CI/CD workflows, Docker image optimization, Git branching strategies, and comprehensive documentation of issues and solutions.
+
+# TROUBLESHOOTING.md
+
+# Task 9 - Kubernetes Deployment using kubeadm
+
+## Project Overview
+
+The application was deployed on a Kubernetes cluster created using **kubeadm** on an AWS EC2 instance. The deployment includes frontend and backend services using Kubernetes Deployments and Services.
+
+---
+
+# Deployment Steps
+
+1. Created a Kubernetes cluster using kubeadm.
+2. Verified the cluster status using:
+   ```bash
+   kubectl cluster-info
+   kubectl get nodes
+   ```
+3. Created Deployment manifests for:
+   - Frontend
+   - Backend
+4. Created Service manifests:
+   - Frontend (NodePort)
+   - Backend (ClusterIP)
+5. Applied all manifests:
+   ```bash
+   kubectl apply -f k8s/
+   ```
+6. Verified Deployments, Pods, and Services.
+7. Tested frontend and backend communication.
+
+---
+
+# Issues Encountered
+
+## Issue 1: Pods Not Starting
+
+### Symptoms
+
+Pods remained in the `Pending` or `ContainerCreating` state.
+
+### Possible Cause
+
+- Kubernetes node was not ready.
+- Required images were still downloading.
+- Resource constraints on the node.
+
+### Resolution
+
+Checked node and pod status.
+
+```bash
+kubectl get nodes
+kubectl get pods
+kubectl describe pod <pod-name>
+```
+
+Waited for the images to download and ensured the node status was **Ready**.
+
+---
+
+## Issue 2: ImagePullBackOff
+
+### Symptoms
+
+Pods showed:
+
+```
+ImagePullBackOff
+```
+
+### Cause
+
+Docker image name or tag was incorrect, or the image was unavailable.
+
+### Resolution
+
+- Verified the image existed on Docker Hub.
+- Corrected the image name in the Deployment manifest.
+- Reapplied the manifest.
+
+```bash
+kubectl apply -f backend-deployment.yaml
+kubectl apply -f frontend-deployment.yaml
+```
+
+---
+
+## Issue 3: CrashLoopBackOff
+
+### Symptoms
+
+Pods restarted repeatedly.
+
+### Cause
+
+Application configuration or environment variables were incorrect.
+
+### Resolution
+
+Checked the logs.
+
+```bash
+kubectl logs <pod-name>
+```
+
+Verified the environment variables and updated the Deployment manifest if required.
+
+---
+
+## Issue 4: Frontend Not Accessible
+
+### Symptoms
+
+The application could not be accessed from the browser.
+
+### Cause
+
+Frontend Service was not exposed correctly.
+
+### Resolution
+
+Verified the Service configuration.
+
+```bash
+kubectl get svc
+```
+
+Confirmed that the frontend Service type was **NodePort** and accessed the application using:
+
+```
+http://<EC2-PUBLIC-IP>:<NodePort>
+```
+
+---
+
+## Issue 5: Frontend Could Not Communicate with Backend
+
+### Symptoms
+
+Frontend loaded but API requests failed.
+
+### Cause
+
+Incorrect backend Service name or Service configuration.
+
+### Resolution
+
+Verified the backend Service.
+
+```bash
+kubectl get svc
+```
+
+Ensured the frontend used the Kubernetes Service name instead of a Pod IP or localhost.
+
+---
+
+# Verification Commands
+
+Verify cluster:
+
+```bash
+kubectl cluster-info
+kubectl get nodes
+```
+
+Verify Deployments:
+
+```bash
+kubectl get deployments
+```
+
+Verify Pods:
+
+```bash
+kubectl get pods
+```
+
+Describe Pods:
+
+```bash
+kubectl describe pod <pod-name>
+```
+
+View Pod Logs:
+
+```bash
+kubectl logs <pod-name>
+```
+
+Verify Services:
+
+```bash
+kubectl get svc
+```
+
+---
+
+# Best Practices
+
+- Organize Kubernetes manifests inside a dedicated `k8s/` directory.
+- Use labels and selectors consistently.
+- Use **ClusterIP** for internal services.
+- Use **NodePort** only for external access in development environments.
+- Verify Pods and Services after every deployment.
+- Check pod logs before modifying manifests.
+- Keep Docker images updated before redeploying.
+
+---
+
+# Conclusion
+
+The application was successfully deployed on a Kubernetes cluster created with **kubeadm**. Deployments, Pods, and Services were verified, and communication between the frontend and backend was successfully established.
