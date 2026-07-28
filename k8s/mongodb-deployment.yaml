@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mongodb
+  namespace: food-delivery
 spec:
   replicas: 1
   selector:
@@ -14,6 +15,6 @@ spec:
     spec:
       containers:
         - name: mongodb
-          image: mongo
+          image: mongo:latest
           ports:
             - containerPort: 27017
