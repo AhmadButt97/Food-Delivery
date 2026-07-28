@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: backend
+  namespace: food-delivery
 spec:
   replicas: 2
   selector:
@@ -17,10 +18,8 @@ spec:
           image: ahmadbutt97/food-delivery-backend:latest
           ports:
             - containerPort: 4000
-          env:
-            - name: MONGO_URL
-              value: "mongodb://mongodb:27017/food-delivery"
-            - name: JWT_SECRET
-              value: "mysecretkey123"
-            - name: SALT
-              value: "10"
+          envFrom:
+            - configMapRef:
+                name: backend-config
+            - secretRef:
+                name: backend-secret

@@ -334,3 +334,44 @@ kubectl get svc
 # Conclusion
 
 The application was successfully deployed on a Kubernetes cluster created with **kubeadm**. Deployments, Pods, and Services were verified, and communication between the frontend and backend was successfully established.
+
+
+---
+
+# Troubleshooting Log — Task 9: Kubernetes Deployment (kubeadm)
+
+## 1. Used kubeadm Instead of Kind
+**Deviation:** The task recommended Kind (Kubernetes in Docker) for a multi-node local cluster. Since a working kubeadm cluster already existed on the VM, that was used instead.
+**Reasoning:** kubeadm provides a more production-representative cluster setup, and functionally the manifests/deployment steps are identical regardless of how the underlying cluster was created.
+
+## 2. Single-Node Cluster Instead of Control-Plane + 2 Workers
+**Issue:** Only one VM was available, so a true multi-node cluster (1 control-plane + 2 workers) wasn't feasible without additional VMs.
+**Solution:** Removed the default `NoSchedule` taint from the control-plane node so it could run application workloads, effectively acting as both control-plane and worker.
+
+## 3. Docker Removed as Kubernetes Container Runtime (dockershim)
+**Issue:** Attempted to use Docker directly as the Kubernetes container runtime.
+**Cause:** Kubernetes removed native Docker support (dockershim) starting v1.24; the cluster was running v1.29.
+**Solution:** Installed `cri-dockerd` as a shim layer, allowing kubelet to communicate with Docker Engine via the CRI interface, while containerd continues to run underneath Docker as its backend.
+
+## 4. CoreDNS Pods Stuck in ContainerCreating — CNI Conflict
+**Issue:** After installing Flannel as the CNI plugin, CoreDNS pods remained stuck, with errors referencing a "calico" plugin failing with expired/invalid certificates.
+**Cause:** A stale Calico CNI configuration file was left in `/etc/cni/net.d/` from an earlier cluster setup attempt. Kubernetes was still picking up this leftover config instead of the newly installed Flannel config.
+**Solution:** Removed the stale Calico config files from `/etc/cni/net.d/`, restarted containerd and kubelet, and deleted the stuck CoreDNS pods to force recreation. CoreDNS came up healthy afterward.
+
+## Outcome
+Deployed a single-node Kubernetes cluster (kubeadm + containerd/cri-dockerd + Flannel) running the food delivery application's backend, frontend, and database, all confirmed running and communicating correctly.
+
+---
+
+# Troubleshooting Log — Task 10: ConfigMaps, Secrets, and Persistent Storage
+
+## 1. No Dynamic Storage Provisioner on Bare-Metal Cluster
+**Issue:** A PersistentVolumeClaim for MongoDB's StatefulSet remained `Pending` indefinitely, with no PersistentVolume ever created.
+**Cause:** Unlike cloud-managed clusters (EKS, GKE), a bare kubeadm cluster has no built-in storage provisioner to dynamically create PersistentVolumes.
+**Solution:** Installed Rancher's `local-path-provisioner`, which dynamically provisions PVs backed by local directories on the VM's disk, and set it as the default StorageClass.
+
+## 2. MongoDB Moved from Deployment to StatefulSet
+**Reasoning:** A regular Deployment doesn't guarantee stable pod identity or a dedicated volume per pod — replacement pods could lose data continuity. Switched MongoDB to a StatefulSet with `volumeClaimTemplates`, giving it a stable hostname (`mongodb-0`) and a dedicated PVC that persists across pod restarts.
+
+## Outcome
+Database now runs as a StatefulSet with persistent storage backed by a locally-provisioned PV/PVC, configuration is managed via ConfigMaps and Secrets instead of hardcoded values, and all resources are deployed inside a dedicated namespace.
