@@ -375,3 +375,21 @@ Deployed a single-node Kubernetes cluster (kubeadm + containerd/cri-dockerd + Fl
 
 ## Outcome
 Database now runs as a StatefulSet with persistent storage backed by a locally-provisioned PV/PVC, configuration is managed via ConfigMaps and Secrets instead of hardcoded values, and all resources are deployed inside a dedicated namespace.
+
+---
+
+# Troubleshooting Log — Task 11: Resource Limits, Health Probes, HPA, and Load Testing
+
+## 1. Metrics Server Required for HPA
+**Issue:** HPA showed no CPU metrics / targets as `<unknown>` initially.
+**Cause:** Kubernetes doesn't include a metrics pipeline by default — HPA requires metrics-server to read live CPU/memory usage.
+**Solution:** Installed metrics-server and patched it with `--kubelet-insecure-tls`, since the cluster's kubelet certificates aren't signed by a recognized CA (expected on a local/self-managed cluster, not an issue on managed cloud clusters).
+
+## 2. Resource Requests/Limits Tuning
+**Consideration:** Initial CPU requests were set conservatively low, since HPA scaling is based on percentage of the *requested* CPU, not the limit — setting this value thoughtfully was necessary for the autoscaler to trigger at a realistic load level.
+
+## 3. Load Testing and Scaling Verification
+**Approach:** Used Apache Bench (`ab`) to generate concurrent load against the backend service, then monitored `kubectl get hpa -w` and `kubectl get pods -w` in parallel to observe replica count increasing as CPU utilization crossed the configured threshold.
+
+## Outcome
+Backend and frontend deployments now have defined resource requests/limits, liveness/readiness probes, and an active HorizontalPodAutoscaler. Load testing confirmed automatic scale-up under increased traffic and scale-down once load subsided.
