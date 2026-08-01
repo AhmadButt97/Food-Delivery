@@ -393,3 +393,20 @@ Database now runs as a StatefulSet with persistent storage backed by a locally-p
 
 ## Outcome
 Backend and frontend deployments now have defined resource requests/limits, liveness/readiness probes, and an active HorizontalPodAutoscaler. Load testing confirmed automatic scale-up under increased traffic and scale-down once load subsided.
+
+
+---
+
+# Troubleshooting Log — Task 12: NGINX Ingress Controller
+
+## 1. Flannel CNI Transient Failure During Ingress Setup
+**Issue:** Ingress admission webhook jobs (`ingress-nginx-admission-create`, `ingress-nginx-admission-patch`) initially failed pod sandbox creation with the same intermittent Flannel `subnet.env` error seen in earlier tasks.
+**Solution:** Jobs eventually succeeded on retry once Flannel networking stabilized; no manual intervention was required this time, though the same fix (checking Flannel pod health, restarting if needed) applies if it recurs.
+
+## 2. Backend Route Broken by Ingress Path Rewriting
+**Issue:** Frontend was reachable through Ingress, but backend API requests returned "Cannot GET /food/list" instead of the expected JSON response.
+**Cause:** The initial Ingress configuration used a `rewrite-target` annotation with regex capture groups, which stripped the `/api` prefix before forwarding requests to the backend service. Since the backend's Express routes are mounted at `/api/food/...`, the rewritten path no longer matched any route.
+**Solution:** Removed the rewrite annotation and regex-based paths, using simple `Prefix` path matching instead so `/api/...` requests reach the backend with the path fully intact.
+
+## Outcome
+NGINX Ingress Controller successfully installed and configured to route `/api/*` traffic to the backend service and all other traffic to the frontend service, both accessible through a single Ingress endpoint (NodePort 32593). Verified frontend loads correctly and can successfully fetch data from the backend API through the Ingress.
