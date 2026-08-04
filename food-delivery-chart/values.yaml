@@ -1,0 +1,35 @@
+namespace: food-delivery
+
+backend:
+  image: ahmadbutt97/food-delivery-backend
+  tag: latest
+  replicas: 2
+  port: 4000
+  hpa:
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUPercent: 50
+  secrets:
+    jwtSecret: "mysecretkey123"
+    salt: "10"
+  env:
+    mongoUrl: "mongodb://mongodb:27017/food-delivery"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "250m"
+      memory: "256Mi"
+
+frontend:
+  image: ahmadbutt97/food-delivery-frontend
+  tag: latest
+  replicas: 2
+  port: 5173
+
+mongodb:
+  image: mongo
+  tag: 8.0-noble
+  storageSize: 2Gi
+  storageClassName: local-path
