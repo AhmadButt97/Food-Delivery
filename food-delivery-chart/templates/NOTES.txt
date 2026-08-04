@@ -1,0 +1,7 @@
+Food Delivery application has been deployed.
+
+Frontend: http://<node-ip>:<ingress-nodeport>/
+Backend API: http://<node-ip>:<ingress-nodeport>/api
+
+Run `kubectl get ingress -n {{ .Values.namespace }}` to check the Ingress status.
+Run `kubectl get pods -n {{ .Values.namespace }}` to check pod status.
