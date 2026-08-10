@@ -2,7 +2,7 @@ namespace: food-delivery
 
 backend:
   image: ahmadbutt97/food-delivery-backend
-  tag: latest
+  tag: v1
   replicas: 1
   port: 4000
   hpa:
