@@ -17,8 +17,16 @@ spec:
       containers:
         - name: mongodb
           image: "{{ .Values.mongodb.image }}:{{ .Values.mongodb.tag }}"
+          command: ["mongod", "--wiredTigerCacheSizeGB", "{{ .Values.mongodb.wiredTigerCacheSizeGB }}", "--bind_ip_all"]
           ports:
             - containerPort: 27017
+          resources:
+            requests:
+              cpu: {{ .Values.mongodb.resources.requests.cpu }}
+              memory: {{ .Values.mongodb.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.mongodb.resources.limits.cpu }}
+              memory: {{ .Values.mongodb.resources.limits.memory }}
           volumeMounts:
             - name: mongodb-data
               mountPath: /data/db
@@ -30,4 +38,4 @@ spec:
         storageClassName: {{ .Values.mongodb.storageClassName }}
         resources:
           requests:
-            storage: {{ .Values.mongodb.storageSize }}
+            storage: {{ .Values.mongodb.storageSize }} 

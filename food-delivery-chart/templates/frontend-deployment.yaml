@@ -18,3 +18,10 @@ spec:
           image: "{{ .Values.frontend.image }}:{{ .Values.frontend.tag }}"
           ports:
             - containerPort: {{ .Values.frontend.port }}
+          resources:
+            requests:
+              cpu: {{ .Values.frontend.resources.requests.cpu }}
+              memory: {{ .Values.frontend.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.frontend.resources.limits.cpu }}
+              memory: {{ .Values.frontend.resources.limits.memory }}
