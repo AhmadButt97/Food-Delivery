@@ -1,7 +1,7 @@
 namespace: food-delivery
 backend:
   image: ahmadbutt97/food-delivery-backend
-  tag: run-26
+  tag: run-5
   replicas: 1
   port: 4000
   hpa:
@@ -22,7 +22,7 @@ backend:
       memory: "256Mi"
 frontend:
   image: ahmadbutt97/food-delivery-frontend
-  tag: run-26
+  tag: run-5
   replicas: 3
   port: 5173
   resources:
