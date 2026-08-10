@@ -38,11 +38,3 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/food-delivery-frontend:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/food-delivery-frontend:run-${{ github.run_number }}
 
-      - name: Build and push admin
-        uses: docker/build-push-action@v5
-        with:
-          context: ./admin
-          push: true
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/food-delivery-admin:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/food-delivery-admin:run-${{ github.run_number }}
