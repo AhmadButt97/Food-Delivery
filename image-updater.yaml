@@ -1,0 +1,32 @@
+apiVersion: argocd-image-updater.argoproj.io/v1alpha1
+kind: ImageUpdater
+metadata:
+  name: food-delivery-image-updater
+  namespace: argocd
+spec:
+  applicationRefs:
+    - namePattern: "food-delivery"
+      images:
+        - alias: backend
+          imageName: ahmadbutt97/food-delivery-backend
+          commonUpdateSettings:
+            updateStrategy: semver
+            allowTags: regexp:^v[0-9]+$
+          manifestTargets:
+            helm:
+              name: backend.image
+              tag: backend.tag
+        - alias: frontend
+          imageName: ahmadbutt97/food-delivery-frontend
+          commonUpdateSettings:
+            updateStrategy: semver
+            allowTags: regexp:^v[0-9]+$
+          manifestTargets:
+            helm:
+              name: frontend.image
+              tag: frontend.tag
+      writeBackConfig:
+        method: git
+        gitConfig:
+          branch: feature/ahmadbutt
+          writeBackTarget: helmvalues:./values.yaml 
