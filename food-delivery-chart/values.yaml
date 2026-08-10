@@ -1,5 +1,4 @@
 namespace: food-delivery
-
 backend:
   image: ahmadbutt97/food-delivery-backend
   tag: v1
@@ -21,10 +20,9 @@ backend:
     limits:
       cpu: "250m"
       memory: "256Mi"
-
 frontend:
   image: ahmadbutt97/food-delivery-frontend
-  tag: latest
+  tag: v1
   replicas: 3
   port: 5173
   resources:
@@ -34,7 +32,6 @@ frontend:
     limits:
       cpu: "150m"
       memory: "128Mi"
-
 mongodb:
   image: mongo
   tag: latest
