@@ -10,8 +10,8 @@ spec:
         - alias: backend
           imageName: ahmadbutt97/food-delivery-backend
           commonUpdateSettings:
-            updateStrategy: semver
-            allowTags: regexp:^v[0-9]+$
+            updateStrategy: latest
+            allowTags: regexp:^run-[0-9]+$
           manifestTargets:
             helm:
               name: backend.image
@@ -19,8 +19,8 @@ spec:
         - alias: frontend
           imageName: ahmadbutt97/food-delivery-frontend
           commonUpdateSettings:
-            updateStrategy: semver
-            allowTags: regexp:^v[0-9]+$
+            updateStrategy: latest
+            allowTags: regexp:^run-[0-9]+$
           manifestTargets:
             helm:
               name: frontend.image
@@ -29,4 +29,4 @@ spec:
         method: git
         gitConfig:
           branch: feature/ahmadbutt
-          writeBackTarget: helmvalues:./values.yaml 
+          writeBackTarget: helmvalues:./values.yaml

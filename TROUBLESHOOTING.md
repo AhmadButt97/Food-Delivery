@@ -429,3 +429,74 @@ NGINX Ingress Controller successfully installed and configured to route `/api/*`
 
 ## Outcome
 Successfully converted all Kubernetes manifests (Deployments, Services, StatefulSet, Ingress, Secret, HPA) into a parameterized Helm chart. Verified the application deploys correctly via a single `helm install` command, with all configuration (image tags, replica counts, resource limits, credentials) externalized to values.yaml.
+
+
+
+# Task 15 – Troubleshooting & Documentation
+
+## Overview
+
+This task implemented a CI/CD and GitOps workflow using **GitHub Actions, Docker Hub, ArgoCD, and ArgoCD Image Updater**.
+
+> Note: The task originally specified Jenkins for CI, but GitHub Actions was used instead to build and push Docker images.
+
+---
+
+## Architecture
+
+GitHub Repository
+        |
+        v
+GitHub Actions
+        |
+        | Build Docker Images
+        v
+Docker Hub
+        |
+        | New Image Version
+        v
+ArgoCD Image Updater
+        |
+        | Update Helm Values
+        v
+Git Repository
+        |
+        v
+ArgoCD
+        |
+        | Automatic Sync
+        v
+Kubernetes Cluster
+        |
+        v
+Application Pods
+
+---
+
+# 1. GitHub Actions Used Instead of Jenkins
+
+### Issue
+
+The original task required Jenkins for the CI pipeline.
+
+### Solution
+
+GitHub Actions was used as the CI platform because the project repository is hosted on GitHub.
+
+The GitHub Actions workflow was configured to:
+
+- Checkout the application source code.
+- Build Docker images.
+- Authenticate with Docker Hub.
+- Push the Docker images to Docker Hub.
+- Use versioned image tags.
+
+### Verification
+
+The workflow was checked from:
+
+```text
+GitHub Repository
+→ Actions
+→ Workflow
+→ Job
