@@ -500,3 +500,16 @@ GitHub Repository
 → Actions
 → Workflow
 → Job
+
+### Task no 16
+Troubleshooting & Documentation
+
+During the infrastructure provisioning and deployment of the Food Delivery application, several issues were identified and resolved. Initially, there were connectivity issues between the backend and MongoDB, which were resolved by correctly configuring the MongoDB service and connection string. Kubernetes storage also caused an issue where the MongoDB PVC remained in a Pending state because the required local-path StorageClass was not available. The StorageClass configuration was corrected so that the PVC could be provisioned successfully.
+
+Another issue occurred when the MongoDB container image could not be pulled because the private EC2 instance had limited disk space. The instance had only an 8 GB root disk, and containerd and Docker were consuming most of the available space. This resulted in a no space left on device error while pulling the MongoDB image. The root EBS volume was increased to 30 GB, and the partition was expanded using growpart, providing enough storage for the Kubernetes workloads.
+
+The Kubernetes Ingress setup also required troubleshooting. Initially, the application Ingress was configured with the traefik IngressClass while the NGINX Ingress Controller was being used. This caused NGINX to return a 404 Not Found response because it was not processing the application's Ingress resource. The IngressClass was changed from traefik to nginx, after which NGINX correctly routed requests to the application services.
+
+Finally, AWS Application Load Balancer connectivity was configured and tested. The ALB initially reported the Kubernetes target as unhealthy. The issue was investigated by checking the target port, security-group rules, health-check configuration, and connectivity to the NGINX NodePort. A socat port-forwarding process was configured to forward traffic from the private EC2 port 32500 to the Kind Kubernetes node. The ALB health-check success codes were also changed to accept 200-499, allowing the NGINX 404 response during the connectivity test. After correcting the Ingress configuration and networking, the ALB successfully reached the Kubernetes application and the application became accessible through the ALB DNS.
+
+These troubleshooting steps were documented to provide a reference for future infrastructure deployments, debugging, and maintenance.
