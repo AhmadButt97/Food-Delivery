@@ -429,3 +429,87 @@ NGINX Ingress Controller successfully installed and configured to route `/api/*`
 
 ## Outcome
 Successfully converted all Kubernetes manifests (Deployments, Services, StatefulSet, Ingress, Secret, HPA) into a parameterized Helm chart. Verified the application deploys correctly via a single `helm install` command, with all configuration (image tags, replica counts, resource limits, credentials) externalized to values.yaml.
+
+
+
+# Task 15 – Troubleshooting & Documentation
+
+## Overview
+
+This task implemented a CI/CD and GitOps workflow using **GitHub Actions, Docker Hub, ArgoCD, and ArgoCD Image Updater**.
+
+> Note: The task originally specified Jenkins for CI, but GitHub Actions was used instead to build and push Docker images.
+
+---
+
+## Architecture
+
+GitHub Repository
+        |
+        v
+GitHub Actions
+        |
+        | Build Docker Images
+        v
+Docker Hub
+        |
+        | New Image Version
+        v
+ArgoCD Image Updater
+        |
+        | Update Helm Values
+        v
+Git Repository
+        |
+        v
+ArgoCD
+        |
+        | Automatic Sync
+        v
+Kubernetes Cluster
+        |
+        v
+Application Pods
+
+---
+
+# 1. GitHub Actions Used Instead of Jenkins
+
+### Issue
+
+The original task required Jenkins for the CI pipeline.
+
+### Solution
+
+GitHub Actions was used as the CI platform because the project repository is hosted on GitHub.
+
+The GitHub Actions workflow was configured to:
+
+- Checkout the application source code.
+- Build Docker images.
+- Authenticate with Docker Hub.
+- Push the Docker images to Docker Hub.
+- Use versioned image tags.
+
+### Verification
+
+The workflow was checked from:
+
+```text
+GitHub Repository
+→ Actions
+→ Workflow
+→ Job
+
+### Task no 16
+Troubleshooting & Documentation
+
+During the infrastructure provisioning and deployment of the Food Delivery application, several issues were identified and resolved. Initially, there were connectivity issues between the backend and MongoDB, which were resolved by correctly configuring the MongoDB service and connection string. Kubernetes storage also caused an issue where the MongoDB PVC remained in a Pending state because the required local-path StorageClass was not available. The StorageClass configuration was corrected so that the PVC could be provisioned successfully.
+
+Another issue occurred when the MongoDB container image could not be pulled because the private EC2 instance had limited disk space. The instance had only an 8 GB root disk, and containerd and Docker were consuming most of the available space. This resulted in a no space left on device error while pulling the MongoDB image. The root EBS volume was increased to 30 GB, and the partition was expanded using growpart, providing enough storage for the Kubernetes workloads.
+
+The Kubernetes Ingress setup also required troubleshooting. Initially, the application Ingress was configured with the traefik IngressClass while the NGINX Ingress Controller was being used. This caused NGINX to return a 404 Not Found response because it was not processing the application's Ingress resource. The IngressClass was changed from traefik to nginx, after which NGINX correctly routed requests to the application services.
+
+Finally, AWS Application Load Balancer connectivity was configured and tested. The ALB initially reported the Kubernetes target as unhealthy. The issue was investigated by checking the target port, security-group rules, health-check configuration, and connectivity to the NGINX NodePort. A socat port-forwarding process was configured to forward traffic from the private EC2 port 32500 to the Kind Kubernetes node. The ALB health-check success codes were also changed to accept 200-499, allowing the NGINX 404 response during the connectivity test. After correcting the Ingress configuration and networking, the ALB successfully reached the Kubernetes application and the application became accessible through the ALB DNS.
+
+These troubleshooting steps were documented to provide a reference for future infrastructure deployments, debugging, and maintenance.
