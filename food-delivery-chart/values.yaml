@@ -23,7 +23,7 @@ backend:
 frontend:
   image: ahmadbutt97/food-delivery-frontend
   tag: run-28
-  replicas: 3
+  replicas: 1
   port: 5173
   resources:
     requests:
