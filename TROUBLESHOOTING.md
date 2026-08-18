@@ -513,3 +513,164 @@ The Kubernetes Ingress setup also required troubleshooting. Initially, the appli
 Finally, AWS Application Load Balancer connectivity was configured and tested. The ALB initially reported the Kubernetes target as unhealthy. The issue was investigated by checking the target port, security-group rules, health-check configuration, and connectivity to the NGINX NodePort. A socat port-forwarding process was configured to forward traffic from the private EC2 port 32500 to the Kind Kubernetes node. The ALB health-check success codes were also changed to accept 200-499, allowing the NGINX 404 response during the connectivity test. After correcting the Ingress configuration and networking, the ALB successfully reached the Kubernetes application and the application became accessible through the ALB DNS.
 
 These troubleshooting steps were documented to provide a reference for future infrastructure deployments, debugging, and maintenance.
+
+# Task 18 - Kubernetes Application Monitoring
+
+## Objective
+
+Monitor the Kubernetes application running on an AWS EC2 instance using:
+
+- AWS CloudWatch
+- CloudWatch Agent
+- CloudWatch Logs
+- CloudWatch Metrics
+- SNS
+- Prometheus
+- Grafana
+
+## Architecture
+
+EC2
+|
++-- Kubernetes / Kind
+|   |
+|   +-- Food Delivery Application
+|   |   +-- Backend
+|   |   +-- Frontend
+|   |   +-- MongoDB
+|   |
+|   +-- Prometheus
+|   +-- Grafana
+|
++-- CloudWatch Agent
+    |
+    +-- CloudWatch Logs
+    +-- CloudWatch Metrics
+    |
+    +-- CloudWatch Alarms
+            |
+            +-- SNS
+                |
+                +-- Email
+
+## CloudWatch
+
+The Amazon CloudWatch Agent was installed on the EC2 instance.
+
+The agent collects:
+
+- EC2 CPU metrics
+- EC2 memory metrics
+- EC2 disk metrics
+- Kubernetes application logs
+
+Application logs collected from:
+
+- Backend
+- Frontend
+- MongoDB
+
+## CloudWatch Log Groups
+
+The following log groups were created:
+
+- /food-delivery/backend
+- /food-delivery/frontend
+- /food-delivery/mongodb
+
+## Application Error Monitoring
+
+A CloudWatch metric filter was configured for:
+
+ERROR
+
+The filter publishes the metric:
+
+FoodDelivery/Application/BackendErrors
+
+This metric can be used by a CloudWatch alarm.
+
+## CloudWatch Alarms
+
+Configured monitoring for:
+
+- CPU usage
+- Memory usage
+- Application errors
+
+SNS is used to send alarm notifications through email.
+
+## Prometheus
+
+Prometheus was installed using kube-prometheus-stack.
+
+Prometheus collects Kubernetes metrics from:
+
+- Kubernetes API server
+- Kubelet
+- Node Exporter
+- kube-state-metrics
+- Kubernetes workloads
+
+## Grafana
+
+Grafana was installed with kube-prometheus-stack.
+
+Prometheus was configured as the Grafana data source.
+
+Kubernetes dashboards were provisioned automatically.
+
+Dashboards include:
+
+- Kubernetes / API server
+- Kubernetes / Kubelet
+- Kubernetes / Networking / Cluster
+- Kubernetes / Networking / Pod
+- Kubernetes / Networking / Workload
+- Kubernetes / Persistent Volumes
+- Kubernetes resource dashboards
+
+## Application Monitoring
+
+The food-delivery namespace is visible in Grafana.
+
+The namespace contains:
+
+- backend
+- frontend
+- mongodb
+
+Grafana displays Kubernetes performance and networking metrics for the application.
+
+## Verification
+
+Prometheus targets were checked from the Prometheus Targets page.
+
+Grafana dashboards were checked for Kubernetes metrics.
+
+CloudWatch metrics were checked from the AWS CloudWatch console.
+
+CloudWatch log groups were verified for application logs.
+
+## Troubleshooting
+
+During setup, several issues were encountered and resolved:
+
+1. Kubernetes Ingress was not directly reachable from the EC2 public IP.
+2. Socat was configured to expose the Kind NodePort.
+3. CloudWatch Agent was initially not installed.
+4. CloudWatch Agent was installed and configured.
+5. Kubernetes pod log paths inside the Kind node were identified.
+6. CloudWatch log collection was configured using the Kind node log paths.
+7. Grafana and Prometheus were exposed using port forwarding and SSH tunnels.
+
+## Result
+
+The Kubernetes application is monitored using both:
+
+- AWS CloudWatch
+- Prometheus + Grafana
+
+CloudWatch provides centralized logs, EC2 metrics, alarms and SNS notifications.
+
+Prometheus and Grafana provide detailed Kubernetes metrics and visualization.
