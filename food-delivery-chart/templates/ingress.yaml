@@ -4,7 +4,7 @@ metadata:
   name: food-delivery-ingress
   namespace: {{ .Values.namespace }}
 spec:
-  ingressClassName: traefik
+  ingressClassName: ngnix
   rules:
     - http:
         paths:

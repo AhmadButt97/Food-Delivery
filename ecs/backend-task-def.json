@@ -1,0 +1,57 @@
+{
+  "family": "food-delivery-backend",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::746413875412:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "backend",
+      "image": "746413875412.dkr.ecr.us-east-1.amazonaws.com/food-delivery-backend:latest",
+      "portMappings": [
+        {
+          "containerPort": 4000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {"name": "MONGO_URL", "value": "mongodb://localhost:27017/food-delivery"},
+        {"name": "JWT_SECRET", "value": "mysecretkey123"},
+        {"name": "SALT", "value": "10"}
+      ],
+      "dependsOn": [
+        {
+          "containerName": "mongodb",
+          "condition": "START"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/food-delivery",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "backend"
+        }
+      }
+    },
+    {
+      "name": "mongodb",
+      "image": "mongo:latest",
+      "portMappings": [
+        {
+          "containerPort": 27017,
+          "protocol": "tcp"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/food-delivery",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "mongodb"
+        }
+      }
+    }
+  ]
+}
