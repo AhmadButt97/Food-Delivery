@@ -22,3 +22,4 @@ node_modules/
 
 # Logs
 *.log
+iam-policy.json
