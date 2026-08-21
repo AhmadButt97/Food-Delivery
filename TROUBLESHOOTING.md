@@ -728,3 +728,95 @@ Internet → ALB (port 80) → Target Groups → ECS Fargate Tasks (awsvpc netwo
 - Target groups: backend-tg, frontend-tg
 - Security group: ecs-tasks-sg
 - Task definitions: food-delivery-backend, food-delivery-frontend
+
+
+# Task 20 - EKS Production Deployment with Helm and ArgoCD
+
+## Overview
+Provisioned a production-style EKS cluster via Terraform, deployed a blue/green setup
+using Helm charts synced through ArgoCD, and exposed both environments independently
+via AWS Application Load Balancers using the AWS Load Balancer Controller.
+
+## Steps Completed
+1. Provisioned EKS cluster (v1.31) + VPC + managed node group via Terraform
+2. Configured kubectl and eksctl, verified nodes and namespaces
+3. Created `blue` and `green` namespaces
+4. Installed ArgoCD in-cluster, accessed via CLI over port-forward
+5. Registered Git repo (SSH) with ArgoCD
+6. Created ArgoCD Applications `food-delivery-blue` and `food-delivery-green`,
+   each pointing at the same Helm chart but deployed into separate namespaces
+7. Installed metrics-server (for HPA) and the AWS EBS CSI driver (for MongoDB's
+   PersistentVolumeClaim), each requiring their own IAM role via OIDC
+8. Installed the AWS Load Balancer Controller via Helm, with its own IAM policy
+   and service account
+9. Fixed the Ingress to use the `alb` ingress class with proper annotations
+10. Verified both environments serve traffic independently through their own ALBs
+
+## Issues Encountered & Fixes
+
+### Issue 1: KMS AccessDenied during cluster creation
+**Cause:** IAM user lacked `kms:TagResource`, needed for the EKS module's default
+customer-managed KMS key (used to encrypt Kubernetes secrets at rest).
+**Fix:** Set `cluster_encryption_config = []` in Terraform to skip the customer-managed
+key and rely on EKS's default encryption instead (acceptable for this learning cluster).
+
+### Issue 2: eks:CreateCluster AccessDenied
+**Cause:** IAM user had no EKS permissions at all.
+**Fix:** Administrator attached broader permissions to the IAM user.
+
+### Issue 3: Terraform state drift caused a cluster replacement plan
+**Cause:** An interrupted apply left the cluster resource marked as "tainted" in
+Terraform state, even though the cluster was healthy in AWS. The next plan showed
+"must be replaced," which would have destroyed and recreated the entire cluster.
+**Fix:** `terraform untaint module.eks.aws_eks_cluster.this[0]` before re-applying.
+**Lesson:** Always inspect a plan carefully for `+/-` (replace) actions before
+approving apply, especially after any interrupted or failed run.
+
+### Issue 4: Node group failed - unsupported AMI for cluster version
+**Cause:** An earlier apply auto-corrected the cluster's Kubernetes version back down
+from 1.31 (the AWS-managed live version) to 1.30 (the value still in main.tf, stale).
+AWS no longer supports the node AMI for 1.30 in this account/region.
+**Fix:** Updated `cluster_version = "1.31"` in Terraform to match what was actually
+running, before creating the node group.
+
+### Issue 5: kubectl "you must be logged in to the server"
+**Cause:** By default, the EKS Terraform module does not grant the cluster-creating
+IAM identity any Kubernetes RBAC access - AWS auth and Kubernetes RBAC are separate.
+**Fix:** Added `enable_cluster_creator_admin_permissions = true` to the EKS module,
+which creates an access entry granting the creator cluster-admin via RBAC.
+
+### Issue 6: Helm chart hardcoded to one namespace
+**Cause:** All templates used `namespace: {{ .Values.namespace }}`, pointing every
+release at a single hardcoded `food-delivery` namespace regardless of where ArgoCD
+was told to deploy it - breaking the blue/green pattern entirely.
+**Fix:** Changed every template to `namespace: {{ .Release.Namespace }}`, letting the
+same chart deploy cleanly into whichever namespace the ArgoCD Application specifies.
+
+### Issue 7: HPA stuck reporting unknown CPU metrics
+**Cause:** EKS does not ship metrics-server by default.
+**Fix:** Installed metrics-server from the upstream manifest.
+
+### Issue 8: MongoDB PVC stuck Pending
+**Cause:** No EBS CSI driver installed, so no controller existed to actually
+provision the EBS volume the PVC was requesting - even though a StorageClass
+existed, nothing could fulfill it.
+**Fix:** Created an IAM role via `eksctl create iamserviceaccount` (using OIDC trust),
+then installed the `aws-ebs-csi-driver` EKS addon using that role. Recreated the
+StorageClass with the correct CSI provisioner (`ebs.csi.aws.com`, not the older
+in-tree `kubernetes.io/aws-ebs`).
+
+### Issue 9: Ingress never got an ALB address
+**Cause:** The Ingress template specified `ingressClassName: ngnix` (a typo, and also
+the wrong controller entirely - no nginx ingress controller was ever installed).
+**Fix:** Installed the AWS Load Balancer Controller (own IAM policy + service account
+via OIDC), then corrected the Ingress to `ingressClassName: alb` with the required
+`alb.ingress.kubernetes.io/*` annotations (scheme, target-type, listen-ports).
+
+### Issue 10: Node group stuck draining during scale-down
+**Cause:** PodDisruptionBudgets on `coredns` and `ebs-csi-controller` blocked
+graceful eviction (`ALLOWED DISRUPTIONS: 0`), stalling the scale-to-zero operation.
+**Fix:** For a learning cluster being paused overnight, force-terminated the EC2
+instances directly via `aws ec2 terminate-instances` rather than waiting on a
+graceful drain that PDBs were blocking indefinitely.
+
+## Architecture
