@@ -820,3 +820,21 @@ instances directly via `aws ec2 terminate-instances` rather than waiting on a
 graceful drain that PDBs were blocking indefinitely.
 
 ## Architecture
+
+
+
+
+
+
+
+
+
+
+
+Task 21 — AWS RDS + Terraform + Secrets Manager
+
+This task involved provisioning a production-style AWS RDS database using Terraform, with remote state management via S3 and DynamoDB locking, and credentials sourced securely from AWS Secrets Manager rather than hardcoded values. The workflow followed a deliberate sequence: first setting up the S3/DynamoDB backend, then creating an RDS instance manually through the AWS Console to understand the VPC → Subnet Group → Security Group → RDS relationship firsthand, before reproducing the same setup in Terraform using the account's existing default VPC. Once the Terraform-managed instance was verified working, the manual instance was deleted to avoid running (and paying for) two databases simultaneously. The final and most important step rewired the Terraform configuration to pull database credentials from a Secrets Manager secret via a data source, instead of a plain hardcoded variable, and confirmed this was a safe in-place update rather than a destructive replacement before applying.
+
+Three real issues came up during the build. First, the RDS instance's endpoint resolved to a private IP even though public access was selected during Console creation — PubliclyAccessible had actually been set to false, fixed by explicitly re-enabling it via aws rds modify-db-instance --publicly-accessible --apply-immediately. Second, after switching credentials to come from Secrets Manager, a password mismatch briefly caused access-denied errors — resolved by resetting the master password directly through the AWS CLI and updating the secret to match, rather than guessing at what value was actually set. Third, terraform plan kept showing a password diff on every run even when nothing had actually changed — this turned out to be expected behavior, since RDS master passwords are write-only and Terraform can never read back the live value to confirm it matches config, so applying was safe each time regardless of the repeated diff.
+
+State locking was verified with a real concurrent-access test: holding one terraform apply at its confirmation prompt while running terraform plan from a second terminal produced a genuine ConditionalCheckFailedException from DynamoDB, proving the lock mechanism actively blocks simultaneous state modifications rather than just being configured and untested. Security was handled by restricting the RDS security group to a single /32 CIDR instead of 0.0.0.0/0, keeping all real credentials out of Git via .gitignore (only a placeholder terraform.tfvars.example was committed), and storing Terraform state in an encrypted, versioned, non-public S3 bucket — with the explicit understanding that Secrets Manager alone doesn't make Terraform state itself secure, since resource attributes can still surface in the state file, making remote state encryption and access control a separate, necessary layer of protection.

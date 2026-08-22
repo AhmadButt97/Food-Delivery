@@ -1,0 +1,8 @@
+vpc_id     = "vpc-0b52663b129602ff3"
+subnet_ids = [
+  "subnet-0119a593cb12b7da4",
+  "subnet-05520e26d962a68b5",
+  "subnet-047e81eceb47878d7"
+]
+allowed_cidr = "YOUR.IP.ADDRESS.HERE/32"
+db_password  = "REPLACE_ME_DO_NOT_COMMIT"
