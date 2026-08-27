@@ -838,3 +838,33 @@ This task involved provisioning a production-style AWS RDS database using Terraf
 Three real issues came up during the build. First, the RDS instance's endpoint resolved to a private IP even though public access was selected during Console creation — PubliclyAccessible had actually been set to false, fixed by explicitly re-enabling it via aws rds modify-db-instance --publicly-accessible --apply-immediately. Second, after switching credentials to come from Secrets Manager, a password mismatch briefly caused access-denied errors — resolved by resetting the master password directly through the AWS CLI and updating the secret to match, rather than guessing at what value was actually set. Third, terraform plan kept showing a password diff on every run even when nothing had actually changed — this turned out to be expected behavior, since RDS master passwords are write-only and Terraform can never read back the live value to confirm it matches config, so applying was safe each time regardless of the repeated diff.
 
 State locking was verified with a real concurrent-access test: holding one terraform apply at its confirmation prompt while running terraform plan from a second terminal produced a genuine ConditionalCheckFailedException from DynamoDB, proving the lock mechanism actively blocks simultaneous state modifications rather than just being configured and untested. Security was handled by restricting the RDS security group to a single /32 CIDR instead of 0.0.0.0/0, keeping all real credentials out of Git via .gitignore (only a placeholder terraform.tfvars.example was committed), and storing Terraform state in an encrypted, versioned, non-public S3 bucket — with the explicit understanding that Secrets Manager alone doesn't make Terraform state itself secure, since resource attributes can still surface in the state file, making remote state encryption and access control a separate, necessary layer of protection.
+
+Task no 25
+
+Food Delivery Website – AWS CloudFront Deployment
+
+Completed the Food Delivery website deployment through AWS Console with the following key steps:
+
+Opened Route 53 and reviewed the Food Delivery domain DNS records.
+Verified DNS using nslookup food-delivery.com.
+Created an S3 bucket for the website.
+Uploaded HTML, CSS, JS and image files to S3.
+Configured S3 website/access settings.
+Opened CloudFront → Create Distribution.
+Selected the S3 bucket as the CloudFront origin.
+Configured Origin Access Control (OAC) for secure S3 access.
+Set Viewer Protocol Policy → Redirect HTTP to HTTPS.
+Set Default Root Object → index.html.
+Enabled CloudFront caching and compression.
+Opened ACM → Request Certificate for food-delivery.com and *.food-delivery.com.
+Added the ACM DNS validation record and verified the certificate became Issued.
+Attached the ACM certificate and configured the custom domain in CloudFront.
+Created a Route 53 Alias → CloudFront record.
+Tested the CloudFront URL and custom domain over HTTPS.
+Verified DNS using dig food-delivery.com.
+Updated website content and identified a CloudFront cache issue.
+Created a CloudFront invalidation using /*.
+Re-tested and confirmed the latest Food Delivery website content was successfully delivered through CloudFront.
+
+Issues resolved: DNS propagation, ACM validation, S3/OAC permissions, HTTPS configuration, and CloudFront caching.
+
